@@ -1,3 +1,6 @@
 [submodule "Malloc-Implementations"]
 	path = Malloc-Implementations
 	url = git://github.com/emeryberger/Malloc-Implementations.git
+[submodule "pycparser"]
+	path = pycparser
+	url = git://github.com/eliben/pycparser.git
