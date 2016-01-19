@@ -1,0 +1,150 @@
+The idea behind a cache allocator is quite simple: divide up memory into pools of objects, where each pool contains objects of the same size, and different pools contain objects of other sizes.  Then, when someone requests a block of memory of a given size, find the first pool large enough to hold a block that size and hand it over.  And that's about all there is to it.  Underneath this frame is a bit more complexity.  Some things to consider: how large should each pool be?  If we run out of objects in one pool, how do we create more?  How do we track which objects in the pool are free or in use?  How many pools should we have, and how large should the gaps be between pool sizes?  The question in italics is one that is especially important to us, because as you may guess, taking care of free/allocated memory involves some sort of control structures.  If these control structures lie in a place where we can overwrite, exploitation may be possible.  The mixing of control and data channels is at the root (well bad code is the real root) of most exploitation techniques.
+
+As said, memory is divided up into pools of objects.  One of these pools is referred to as a cache, and there are many of these caches in the kernel.  The key data structure behind all of this is the kmem_cache_t data type.  It is used to hold all sorts of information about the cache it refers to, such as the size of each object and the number of objects found in each pool.  There exists one of these data types for each different cache in the system.  Drivers and the like are able to create their own caches of a size they choose.  If a driver does this, it will create its cache by calling the kmem_cache_create() function.  This function creates a cache of objects whose size is provided by the caller, and then it inserts this cache into the global list of created caches called the cache_cache.  The cache_cache is itself a static kmem_cache_t object, and it is used to hold all of the system wide caches.  Therefore the size of objects in its pool is sizeof(kmem_cache_t).  You can can view all of the caches in the system by looking at the file /proc/slabinfo.  In addition to this global 'cache of caches', we also have the general caches.  The general caches are an array of caches, each sized a power of 2 greater than the last one.  On IA-32 these sizes start at 32, and go up until 131,072 by multiples of 2.  For each size, there are two caches, a cache for normal memory, and a cache for DMA capable memory.  On IA-32, DMA memory must be at an address that is addressable with 16 bits.  This is how kmalloc() works.  When kmalloc() is called, all it does is search through the general caches until it finds a suitably sized cache, and then calls __kmem_cache_alloc() to grab an object from that cache and returns it to the caller.  Similarly, kfree() just returns the object to its cache by calling __kmem_cache_free().
+
+This is a very fast storage allocator.  It allocates blocks of a small  number of different sizes, and keeps free lists of each size.  Blocks that don't exactly fit are passed up to the next larger size.  In this   implementation, the available sizes are 2^n-4 (or 2^n-10) bytes long. This is designed for use in a virtual memory environment.
+
+In order to organize the objects in each cache, the kernel relies on slabs.  A slab hosts a number of objects, and possibly the control information needed to manage the objects stored in the slab.  Each cache consists of multiple slabs, and each slab consists of multiple objects.  A slab itself is merely a number of pages of physical memory allocated by the get_free_pages() function.  In order to organize all of its slabs, a cache manages three separate doubly linked lists of slabs, using the standard kernel list implementation.  You saw the heads of these three lists in the above variables.  One list is for slabs that have no objects on them, the free list, another list is for slabs that are partially full of objects, the partial list, and the third list is for slabs that are completely full of objects, the full list.  Each slab, represented by the slab_t type, contains a list pointer used to sew all the slabs in a list together.  That is, each slab allocated for a cache will reside in one of the three lists.  There can be many slabs in a list, and they are sewn together via pointers embedded in each slab, with the head of the list in the kmem_cache_t object.   Here is a visualization of this.
+
+When the cache is first created, it has no slabs in it.  When a cache has filled up all of its free and partial slabs, it has no room left for more objects.  When either of these events occur the cache needs to allocate more slabs.  This is handled by kmem_cache_grow().  When the cache is being destroyed, we need to destroy all of the free slabs.  When this occurs the kmem_cache_shrink() function is called.  The grow function adds a slab to the caches free list.  The shrink function removes all slabs from the free list, and disposes of their memory.  Here are both of those functions with comments.
+
+After a slab has been created, it must be initialized.  Two functions do this, kmem_cache_slabmgmt() and kmem_cache_init_objs().  The first one aligns the slab_t pointer on a proper boundary if the control is on-slab, or if it is off-slab it allocates an area for it using kmem_cache_alloc().  This area will be one of the general areas used for kmalloc().  It also initializes the s_mem member to point to the base where objects start.  The second function has two roles: calling the constructor for each object on the slab if the user provided one at cache creation time, and also setting the kmem_bufctl_t array.  This second part merely initializes each index as described above, to its index + 1, and the final index to BUFCTL_END.
+
+Destroying a slab is equally simple.  If a destructor was specified, then we call it for each object in the slab.  Then we free the pages used by the slab  with kmem_freepages().  If the slab control data was stored off-slab, we free it from its cache.
+
+
+The history of all hitherto existing societies is the history
+of class struggles.
+
+Freeman and slave, patrician and plebeian, lord and serf,
+guild-master and journeyman, in a word, oppressor and oppressed,
+stood in constant opposition to one another, carried on an
+uninterrupted, now hidden, now open fight, a fight that each time
+ended, either in a revolutionary re-constitution of society at
+large, or in the common ruin of the contending classes.
+
+In the earlier epochs of history, we find almost everywhere a
+complicated arrangement of society into various orders, a
+manifold gradation of social rank.  In ancient Rome we have
+patricians, knights, plebeians, slaves; in the Middle Ages,
+feudal lords, vassals, guild-masters, journeymen, apprentices,
+serfs; in almost all of these classes, again, subordinate
+gradations.
+
+The modern bourgeois society that has sprouted from the ruins
+of feudal society has not done away with class antagonisms.  It
+has but established new classes, new conditions of oppression,
+new forms of struggle in place of the old ones.  Our epoch, the
+epoch of the bourgeoisie, possesses, however, this distinctive
+feature: it has simplified the class antagonisms. Society as a
+whole is more and more splitting up into two great hostile camps,
+into two great classes, directly facing each other: Bourgeoisie
+and Proletariat.
+
+From the serfs of the Middle Ages sprang the chartered burghers
+of the earliest towns.  From these burgesses the first elements
+of the bourgeoisie were developed.
+
+The discovery of America, the rounding of the Cape, opened up
+fresh ground for the rising bourgeoisie. The East-Indian and
+Chinese markets, the colonisation of America, trade with
+the colonies, the increase in the means of exchange and in
+commodities generally, gave to commerce, to navigation, to
+industry, an impulse never before known, and thereby, to the
+revolutionary element in the tottering feudal society, a rapid
+development.
+
+The feudal system of industry, under which industrial production
+was monopolised by closed guilds, now no longer sufficed for the
+growing wants of the new markets.  The manufacturing system took
+its place.  The guild-masters were pushed on one side by the
+manufacturing middle class; division of labour between the
+different corporate guilds vanished in the face of division of
+labour in each single workshop.
+
+Meantime the markets kept ever growing, the demand ever rising.
+Even manufacture no longer sufficed.  Thereupon, steam and
+machinery revolutionised industrial production.  The place of
+manufacture was taken by the giant, Modern Industry, the place of
+the industrial middle class, by industrial millionaires, the
+leaders of whole industrial armies, the modern bourgeois.
+
+Modern industry has established the world-market, for which the
+discovery of America paved the way.  This market has given an
+immense development to commerce, to navigation, to communication
+by land.  This development has, in its time, reacted on the
+extension of industry; and in proportion as industry, commerce,
+navigation, railways extended, in the same proportion the
+bourgeoisie developed, increased its capital, and pushed into the
+background  every class handed down from the Middle Ages.
+
+We see, therefore, how the modern bourgeoisie is itself the
+product of a long course of development, of a series of
+revolutions in the modes of production and of exchange.
+
+Each step in the development of the bourgeoisie was accompanied
+by a corresponding political advance of that class.  An
+oppressed class under the sway of the feudal nobility, an
+armed and self-governing association in the mediaeval commune;
+here independent urban republic (as in Italy and Germany),
+there taxable "third estate" of the monarchy (as in France),
+afterwards, in the  period of manufacture proper, serving either
+the semi-feudal or the absolute monarchy as a counterpoise
+against the nobility, and, in fact, corner-stone of the great
+monarchies in general, the bourgeoisie has at last, since the
+establishment of Modern Industry and of the world-market,
+conquered for itself, in the modern representative State,
+exclusive political sway.  The executive of the modern State is
+but a committee for managing the common affairs of the whole
+bourgeoisie.
+
+The bourgeoisie, historically, has played a most revolutionary
+part.
+
+The bourgeoisie, wherever it has got the upper hand, has put an
+end to all feudal, patriarchal, idyllic relations.  It has
+pitilessly torn asunder the motley feudal ties that bound man to
+his "natural superiors," and has left remaining no other nexus
+between man and man than naked self-interest, than callous "cash
+payment."  It has drowned the most heavenly ecstasies of
+religious fervour, of chivalrous enthusiasm, of philistine
+sentimentalism, in the icy water of egotistical calculation.  It
+has resolved personal worth into exchange value, and in place of
+the numberless and indefeasible chartered freedoms, has set up that
+single, unconscionable freedom--Free Trade.  In one word, for
+exploitation, veiled by religious and political illusions, naked,
+shameless, direct, brutal exploitation.
+
+The bourgeoisie has stripped of its halo every occupation
+hitherto honoured and looked up to with reverent awe.  It has
+converted the physician, the lawyer, the priest, the poet, the
+man of science, into its paid wage labourers.
+
+The bourgeoisie has torn away from the family its sentimental
+veil, and has reduced the family relation to a mere money
+relation.
+
+The bourgeoisie has disclosed how it came to pass that the
+brutal display of vigour in the Middle Ages, which Reactionists
+so much admire, found its fitting complement in the most slothful
+indolence.  It has been the first to show what man's activity can
+bring about.  It has accomplished wonders far surpassing Egyptian
+pyramids, Roman aqueducts, and Gothic cathedrals; it has
+conducted expeditions that put in the shade all former Exoduses
+of nations and crusades.
+
+The bourgeoisie cannot exist without constantly revolutionising
+the instruments of production, and thereby the relations of
+production, and with them the whole relations of society.
+Conservation of the old modes of production in unaltered form,
+was, on the contrary, the first condition of existence for all
+earlier industrial classes. Constant revolutionising of
+production, uninterrupted disturbance of all social conditions,
+everlasting uncertainty and agitation distinguish the bourgeois
+epoch from all earlier ones. All fixed, fast-frozen relations,
+with their train of ancient and venerable prejudices and
+opinions, are swept away, all new-formed ones become antiquated
+before they can ossify. All that is solid melts into air, all
+that is holy is profaned, and man is at last compelled to face
+with sober senses, his real conditions of life, and his
+relations with his kind.
