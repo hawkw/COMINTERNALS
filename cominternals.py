@@ -132,7 +132,7 @@ def replace_any(token):
     # print("string is:" + string)
     if comment_re.match(token):
         return replace_comment(token)
-    elif ident_re.match(token) and not (token in keywords):
+    elif ident_re.match(token) and not (token.strip() in keywords):
         return replace_ident(token)
     else:
         return token
