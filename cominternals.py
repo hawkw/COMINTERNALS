@@ -8,7 +8,7 @@ types = ["short", "int", "long", "float", "double", "char", "void", "bool",
          "FILE"]
 containers = ["enum", "struct", "union", "typedef"]
 preprocessor = ["define", "ifdef", "ifndef", "include", "endif", "defined"]
-libs = ["_WIN32", "NULL", "fprintf", "stderr", "memset", "size_t", "fflush", "abort"]
+libs = ["_WIN32", "NULL", "fprintf", "stderr", "memset", "size_t", "fflush", "abort", "u_char", "u_long", "caddr_t"]
 modifiers = ["const", "volatile", "extern", "static", "register", "signed",
              "unsigned"]
 flow = ["if", "else", "goto",  "case", "default", "continue", "break"]
