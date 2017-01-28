@@ -8,7 +8,7 @@ types = ["short", "int", "long", "float", "double", "char", "void", "bool",
          "FILE"]
 containers = ["enum", "struct", "union", "typedef"]
 preprocessor = ["define", "ifdef", "ifndef", "include", "endif", "defined"]
-libs = ["_WIN32", "NULL", "fprintf", "stderr", "memset", "caddr_t", "size_t"]
+libs = ["_WIN32", "NULL", "fprintf", "stderr", "memset", "size_t"]
 modifiers = ["const", "volatile", "extern", "static", "register", "signed",
              "unsigned"]
 flow = ["if", "else", "goto",  "case", "default", "continue", "break"]
@@ -23,8 +23,11 @@ with open("communist_manifesto.txt") as f:
 
 in_dir = "Malloc-Implementations/allocators/kmalloc"
 out_dir = "out"
+
 # Build the model.
-karl_markov = markovify.Text(text)
+# skip the Project Gutenberg footer at the end
+gutenberg_footer = 72910
+karl_markov = markovify.Text(text[:gutenberg_footer])
 print("\"" + karl_markov.make_short_sentence(100) + "\" -- Karl Markov")
 
 the_peoples_idents = {}
@@ -33,24 +36,30 @@ the_peoples_idents = {}
 def make_ident(length):
     ident = None
     while not ident:
-        ident = karl_markov.make_short_sentence(length,
-                                                tries=100,
-                                                max_overlap_ratio=100,
-                                                max_overlap_total=300)
-        if ident in the_peoples_idents:
-            ident = None
-    # ensure ident is a valid C ident
-    return ident.lower().replace(' ', '_')
+        length = length + 1 if length <= 30 else length
+        pos_ident = karl_markov.make_short_sentence(length,
+                                                    tries=100,
+                                                    max_overlap_ratio=100,
+                                                    max_overlap_total=300)
+        # ensure the new identifier is valid
+        if pos_ident:
+            pos_ident = (
+                invalid_ident_re.sub("", pos_ident.replace(' ', '_')).lower()
+            )
+        if pos_ident not in the_peoples_idents.values():
+            ident = pos_ident
+    return ident
 
-comment = r"\s*\/\*(\*(?!\/)|[^*])*\*\/"
+comment = r"\s*\/\*(\*(?!\/)|[^*]|\n)*\*\/"
 comment_re = re.compile(comment, re.DOTALL)
 ident = r"[_a-zA-Z][_a-zA-Z0-9]{0,30}"
 ident_re = re.compile(ident)
 invalid_ident_re = re.compile(r"[^_a-zA-Z]")
 string_lit = "\"[^\"]*\""
 hex_lit = r"0x[a-fA-F0-9]+"
-split_re = re.compile("({}|{}|{}|{}|<[^>]+>)"
-                      .format(comment, hex_lit, ident, string_lit),
+include = r"#include\s*<[a-zA-Z/]+\.h>"
+split_re = re.compile("({}|{}|{}|{}|{})"
+                      .format(comment, include, hex_lit, ident, string_lit),
                       re.DOTALL)
 
 
@@ -58,12 +67,15 @@ split_re = re.compile("({}|{}|{}|{}|<[^>]+>)"
 def replace_ident(old_ident):
     # print("old:" + old_ident)
     if old_ident in the_peoples_idents:
-        return the_peoples_idents[old_ident]
+        new = the_peoples_idents[old_ident]
+        print("ident \"{}\" already mapped to \"{}\"".format(old_ident, new))
+        return new
     else:
         length = len(old_ident)
         length = length if length > 15 else length + 15
         new_ident = invalid_ident_re.sub("", make_ident(length))
         the_peoples_idents[old_ident] = new_ident
+        print("new ident \"{}\" mapped to \"{}\"".format(old_ident, new_ident))
         return new_ident
 
 
@@ -88,7 +100,7 @@ def replace_comment_line(old_line):
 def make_comment(length):
     comment = None
     length = 50 if length < 50 else length
-    print("length: {}".format(length))
+    # print("length: {}".format(length))
     while not comment:
         comment = karl_markov.make_short_sentence(length,
                                                   tries=100,
@@ -103,7 +115,7 @@ def replace_comment(old_comment):
     subsequent_indent = first_indent.replace('\n', "")
 
     old_sentences = re.sub(r"[\*\/\\]", "", old_comment).split('.')
-    print(old_sentences)
+    # print(old_sentences)
 
     # generate a new comment
     new_sentences = map(lambda s: make_comment(len(s)), old_sentences)
@@ -114,7 +126,7 @@ def replace_comment(old_comment):
     new_comment[0] = "{}/* {}".format(first_indent, new_comment[0])
     nlines = len(new_comment)
     new_comment = "\n{} * ".format(subsequent_indent).join(new_comment) + " */"
-    print(new_comment)
+    # print(new_comment)
     return new_comment
     # return '\n'.join(map(replace_comment_line, old_comment.split('\n')))
 
