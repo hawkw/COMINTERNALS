@@ -28,33 +28,33 @@ out_dir = "out"
 # skip the Project Gutenberg footer at the end
 gutenberg_footer = 72910
 karl_markov = markovify.Text(text[:gutenberg_footer])
-print("\"" + karl_markov.make_short_sentence(100) + "\" -- Karl Markov")
+print("\"" + karl_markov.make_short_sentence(100, tries=100) + "\" -- Karl Markov")
 
 the_peoples_idents = {}
 
 
-def make_ident(length):
+def make_ident(old_id):
+    length = len(old_id)
     ident = None
     while not ident:
         length = length + 1 if length <= 30 else length
-        pos_ident = karl_markov.make_short_sentence(length,
-                                                    tries=100,
-                                                    max_overlap_ratio=100,
-                                                    max_overlap_total=300)
+        id_try = karl_markov.make_short_sentence(length,
+                                                 tries=100,
+                                                 max_overlap_ratio=100,
+                                                 max_overlap_total=300)
         # ensure the new identifier is valid
-        if pos_ident:
-            pos_ident = (
-                invalid_ident_re.sub("", pos_ident.replace(' ', '_')).lower()
-            )
-        if pos_ident not in the_peoples_idents.values():
-            ident = pos_ident
+        if id_try:
+            id_try = invalid_id_re.sub("", id_try.replace(' ', '_'))
+            id_try = id_try.upper() if old_id.isupper() else id_try.lower()
+            if id_try not in the_peoples_idents.values():
+                ident = id_try
     return ident
 
 comment = r"\s*\/\*(\*(?!\/)|[^*]|\n)*\*\/"
 comment_re = re.compile(comment, re.DOTALL)
 ident = r"[_a-zA-Z][_a-zA-Z0-9]{0,30}"
 ident_re = re.compile(ident)
-invalid_ident_re = re.compile(r"[^_a-zA-Z]")
+invalid_id_re = re.compile(r"[^_a-zA-Z]")
 string_lit = "\"[^\"]*\""
 hex_lit = r"0x[a-fA-F0-9]+"
 include = r"#include\s*<[a-zA-Z/]+\.h>"
@@ -71,9 +71,7 @@ def replace_ident(old_ident):
         print("ident \"{}\" already mapped to \"{}\"".format(old_ident, new))
         return new
     else:
-        length = len(old_ident)
-        length = length if length > 15 else length + 15
-        new_ident = invalid_ident_re.sub("", make_ident(length))
+        new_ident = make_ident(old_ident)
         the_peoples_idents[old_ident] = new_ident
         print("new ident \"{}\" mapped to \"{}\"".format(old_ident, new_ident))
         return new_ident
@@ -160,3 +158,10 @@ for root, dirs, filenames in os.walk(in_dir):
                     os.makedirs(out_path)
                 with open(os.path.join(out_path, f), "w") as out:
                     out.write(replace_all(code.read()))
+        # else:
+        #     with open(os.path.join(root, f)) as code:
+        #         out_path = os.path.join(out_dir, root)
+        #         if not os.path.exists(out_path):
+        #             os.makedirs(out_path)
+        #         with open(os.path.join(out_path, f), "w") as out:
+        #             out.write(code.read())
