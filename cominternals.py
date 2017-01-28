@@ -32,13 +32,13 @@ def make_ident(length):
     ident = None
     while not ident:
         ident = karl_markov.make_short_sentence(length,
-                    tries=100,
-                    max_overlap_ratio=100,
-                    max_overlap_total=300)
+                            tries=100,
+                            max_overlap_ratio=100,
+                            max_overlap_total=300)
         if ident in the_peoples_idents:
             ident = None
-    # print("new:" + ident)
-    return ident.replace(' ', '_')
+    # ensure ident is a valid C ident
+    return ident.lower().replace(' ', '_')
 
 comment = r"\/\*(\*(?!\/)|[^*])*\*\/"
 comment_re = re.compile(comment, re.DOTALL)
