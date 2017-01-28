@@ -6,14 +6,14 @@ from functools import reduce
 types = ["short", "int", "long", "float", "double", "char", "void", "bool", "FILE"]
 containers = ["enum", "struct", "union", "typedef"]
 preprocessor = ["define", "ifdef", "ifndef", "include", "endif", "defined"]
-libs = [ "_WIN32", "NULL", "fprintf", "stderr", "memset", "caddr_t"]
+libs = [ "_WIN32", "NULL", "fprintf", "stderr", "memset", "caddr_t", "size_t"]
 modifiers = [ "const", "volatile", "extern", "static", "register", "signed", "unsigned"]
 flow = [ "if", "else",
          "goto",
          "case", "default",
          "continue", "break"  ]
 loops = ["for", "do", "while" "switch" ]
-keywords = types + containers + modifiers + flow + loops + [ "return", "sizeof", "sbrk" ] + preprocessor
+keywords = types + containers + modifiers + flow + loops + [ "return", "sizeof", "sbrk" ] + preprocessor + libs
 
 
 # Get raw text as string.
@@ -26,19 +26,30 @@ out_dir = "out"
 karl_markov = markovify.Text(text)
 print("\"" + karl_markov.make_short_sentence(100) + "\" -- Karl Markov")
 
+the_peoples_idents = {}
 
 def make_ident(length):
     ident = None
     while not ident:
-        ident = karl_markov.make_short_sentence(length, tries=100, max_overlap_ratio=1, max_overlap_total=300)
+        ident = karl_markov.make_short_sentence(length,
+                    tries=100,
+                    max_overlap_ratio=100,
+                    max_overlap_total=300)
+        if ident in the_peoples_idents:
+            ident = None
     # print("new:" + ident)
     return ident.replace(' ', '_')
 
-comment_re = re.compile(r"(\/\*(\*(?!\/)|[^*])*\*\/)", re.DOTALL)
-ident_re = re.compile(r"([_a-zA-Z][_a-zA-Z0-9]{0,30})")
+comment = r"\/\*(\*(?!\/)|[^*])*\*\/"
+comment_re = re.compile(comment, re.DOTALL)
+ident = r"[_a-zA-Z][_a-zA-Z0-9]{0,30}"
+ident_re = re.compile(ident)
 invalid_ident_re = re.compile(r"[^_a-zA-Z]")
-split_re = re.compile(r"(\/\*(\*(?!\/)|[^*])*\*\/|[_a-zA-Z][_a-zA-Z0-9]{0,30}|\"[^\"]*\"|<[^>]+>)", re.DOTALL)
-the_peoples_idents = {}
+string_lit = "\"[^\"]*\""
+hex_lit = r"0x[a-fA-F0-9]+"
+split_re = re.compile("({}|{}|{}|{}|<[^>]+>)"
+                        .format(comment, hex_lit, ident, string_lit),
+                      re.DOTALL)
 
 # replace a capitalist identifier with a new, ideologically correct identifier
 def replace_ident(old_ident):
@@ -46,8 +57,9 @@ def replace_ident(old_ident):
     if old_ident in the_peoples_idents:
         return the_peoples_idents[old_ident]
     else:
-        length = 10 + len(old_ident)
-        new_ident = invalid_ident_re.sub("", make_ident(30))
+        length = len(old_ident)
+        length = length if length > 15 else length + 15
+        new_ident = invalid_ident_re.sub("", make_ident(length))
         the_peoples_idents[old_ident] = new_ident
         return new_ident
 
@@ -60,9 +72,12 @@ def replace_comment_line(old_line):
         begin = ""
     end = " */" if old_line.endswith("*/") else ""
     new_line = None
-    length = 40 if len(old_line) < 40 else len(old_line)
+    length = 30 if len(old_line) < 30 else len(old_line)
     while not new_line:
-        new_line = karl_markov.make_short_sentence(length, tries=100,  max_overlap_ratio=10, max_overlap_total=600)
+        new_line = karl_markov.make_short_sentence(length,
+                        tries=100,
+                        max_overlap_ratio=100,
+                        max_overlap_total=600)
     return begin + new_line  + end
 
 def replace_comment(old_comment):
