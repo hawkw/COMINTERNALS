@@ -1,19 +1,20 @@
 import markovify
 import os
 import re
+import textwrap
 from functools import reduce
 
-types = ["short", "int", "long", "float", "double", "char", "void", "bool", "FILE"]
+types = ["short", "int", "long", "float", "double", "char", "void", "bool",
+         "FILE"]
 containers = ["enum", "struct", "union", "typedef"]
 preprocessor = ["define", "ifdef", "ifndef", "include", "endif", "defined"]
-libs = [ "_WIN32", "NULL", "fprintf", "stderr", "memset", "caddr_t", "size_t"]
-modifiers = [ "const", "volatile", "extern", "static", "register", "signed", "unsigned"]
-flow = [ "if", "else",
-         "goto",
-         "case", "default",
-         "continue", "break"  ]
-loops = ["for", "do", "while" "switch" ]
-keywords = types + containers + modifiers + flow + loops + [ "return", "sizeof", "sbrk" ] + preprocessor + libs
+libs = ["_WIN32", "NULL", "fprintf", "stderr", "memset", "caddr_t", "size_t"]
+modifiers = ["const", "volatile", "extern", "static", "register", "signed",
+             "unsigned"]
+flow = ["if", "else", "goto",  "case", "default", "continue", "break"]
+loops = ["for", "do", "while" "switch"]
+keywords = types + containers + modifiers + flow + loops + \
+            ["return", "sizeof", "sbrk"] + preprocessor + libs
 
 
 # Get raw text as string.
@@ -28,19 +29,20 @@ print("\"" + karl_markov.make_short_sentence(100) + "\" -- Karl Markov")
 
 the_peoples_idents = {}
 
+
 def make_ident(length):
     ident = None
     while not ident:
         ident = karl_markov.make_short_sentence(length,
-                            tries=100,
-                            max_overlap_ratio=100,
-                            max_overlap_total=300)
+                                                tries=100,
+                                                max_overlap_ratio=100,
+                                                max_overlap_total=300)
         if ident in the_peoples_idents:
             ident = None
     # ensure ident is a valid C ident
     return ident.lower().replace(' ', '_')
 
-comment = r"\/\*(\*(?!\/)|[^*])*\*\/"
+comment = r"\s*\/\*(\*(?!\/)|[^*])*\*\/"
 comment_re = re.compile(comment, re.DOTALL)
 ident = r"[_a-zA-Z][_a-zA-Z0-9]{0,30}"
 ident_re = re.compile(ident)
@@ -48,12 +50,13 @@ invalid_ident_re = re.compile(r"[^_a-zA-Z]")
 string_lit = "\"[^\"]*\""
 hex_lit = r"0x[a-fA-F0-9]+"
 split_re = re.compile("({}|{}|{}|{}|<[^>]+>)"
-                        .format(comment, hex_lit, ident, string_lit),
+                      .format(comment, hex_lit, ident, string_lit),
                       re.DOTALL)
+
 
 # replace a capitalist identifier with a new, ideologically correct identifier
 def replace_ident(old_ident):
-    print("old:" + old_ident)
+    # print("old:" + old_ident)
     if old_ident in the_peoples_idents:
         return the_peoples_idents[old_ident]
     else:
@@ -62,6 +65,7 @@ def replace_ident(old_ident):
         new_ident = invalid_ident_re.sub("", make_ident(length))
         the_peoples_idents[old_ident] = new_ident
         return new_ident
+
 
 def replace_comment_line(old_line):
     if old_line.startswith("/*"):
@@ -75,13 +79,45 @@ def replace_comment_line(old_line):
     length = 30 if len(old_line) < 30 else len(old_line)
     while not new_line:
         new_line = karl_markov.make_short_sentence(length,
-                        tries=100,
-                        max_overlap_ratio=100,
-                        max_overlap_total=600)
-    return begin + new_line  + end
+                                                   tries=100,
+                                                   max_overlap_ratio=100,
+                                                   max_overlap_total=600)
+    return begin + new_line + end
+
+
+def make_comment(length):
+    comment = None
+    length = 50 if length < 50 else length
+    print("length: {}".format(length))
+    while not comment:
+        comment = karl_markov.make_short_sentence(length,
+                                                  tries=100,
+                                                  max_overlap_ratio=10,
+                                                  max_overlap_total=600)
+    return comment
+
 
 def replace_comment(old_comment):
-    return '\n'.join(map(replace_comment_line, old_comment.split('\n')))
+    # indent amounts for the comment block
+    first_indent = re.match("(\s+)*", old_comment).group(0)
+    subsequent_indent = first_indent.replace('\n', "")
+
+    old_sentences = re.sub(r"[\*\/\\]", "", old_comment).split('.')
+    print(old_sentences)
+
+    # generate a new comment
+    new_sentences = map(lambda s: make_comment(len(s)), old_sentences)
+
+    new_comment = textwrap.wrap(" ".join(new_sentences),
+                                75 - len(subsequent_indent))
+
+    new_comment[0] = "{}/* {}".format(first_indent, new_comment[0])
+    nlines = len(new_comment)
+    new_comment = "\n{} * ".format(subsequent_indent).join(new_comment) + " */"
+    print(new_comment)
+    return new_comment
+    # return '\n'.join(map(replace_comment_line, old_comment.split('\n')))
+
 
 def replace_any(token):
     # print("string is:" + string)
@@ -92,14 +128,16 @@ def replace_any(token):
     else:
         return token
 
+
 def replace_all(string):
     result = ""
-    split = filter(lambda n: n != None, split_re.split(string))
+    split = filter(lambda n: n is not None, split_re.split(string))
     for s in map(lambda s: replace_any(s), split):
-        print("\"" + s + "\"")
+        # print("\"" + s + "\"")
         result = result + s
     # print(split)
     return result
+
 
 for root, dirs, filenames in os.walk(in_dir):
     for f in filenames:
