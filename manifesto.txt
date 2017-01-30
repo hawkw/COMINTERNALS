@@ -1,0 +1,43 @@
+MANIFESTO OF THE COMINTERNALS PARTY
+eliza weisman, 2017
+
+a spectre is haunting linux--the spectre of communism.
+
+   *  *  *
+
+among the primary responsibilities of a computer operating system, we are
+told, is resource management. the kernel allocates limited resources, such
+as CPU time, memory, disk space, and input/output devices, to meet the demand
+of user software. it is tasked with ensuring that these resources are
+allocated fairly and efficiently, and with balancing the needs of competing
+user processes.
+
+then, we might ask, is an operating system not unlike a government? are the algorithms that describe how limited CPU time and memory space are allocated
+between threads not serving the same fundamental role as an economic system,
+which describes how limited labor and natural resources are allocated between
+human beings? might the techniques developed to optimize the performance of
+operating systems not also optimize the performance of governments and
+economies?
+
+   *  *  *
+
+what human concerns might be neglected when governance is thus reduced to an
+engineering problem?
+
+   *  *  *
+
+source code, the human-readable, textual representation of a computer program,
+is filled with human meaning; comments included in the source and the names
+given to variables, constants, functions, and other units of code describe the behaviour, purposes, and authorial intent to a human reader. but when source
+code is compiled to machine-readable binary, all of this human meaning is
+stripped away, replaced with machine meaning.
+
+   *  *  *
+
+the compiler doesn't care what you called a given variable, and it certainly
+doesn't read your comments, no matter how much we might wish otherwise.
+
+   *  *  *
+
+two source code files whose human-readable text convey completely different
+semantic meanings could nonetheless output identical executable binaries. 
