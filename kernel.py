@@ -1,8 +1,6 @@
 import markovify, re, os, textwrap
-import karl_markov
+import karl_markov, c
 from functools import reduce
-from c_parser import *
-
 
 def header_names(path):
     """Generates a list of names defined in the header file at `path`."""
@@ -27,7 +25,6 @@ no_mangle = []
 
 karl_markov = karl_markov.make_karl()
 the_peoples_idents = {}
-
 
 # replace a capitalist identifier with a new, ideologically correct identifier
 def replace_ident(old_ident):
@@ -71,7 +68,7 @@ def make_ident(old_id):
                                                  max_overlap_total=300)
         # ensure the new identifier is valid
         if id_try:
-            id_try = invalid_id_re.sub("", id_try.replace(' ', '_'))
+            id_try = c.invalid_id_re.sub("", id_try.replace(' ', '_'))
             id_try = id_try.upper() if old_id.isupper() else id_try.lower()
             if id_try not in the_peoples_idents.values():
                 ident = id_try
@@ -113,10 +110,10 @@ def replace_comment(old_comment):
 
 def replace_any(token):
     # print("string is:" + string)
-    if comment_re.match(token):
+    if c.comment(token):
         return replace_comment(token)
-    elif include_re.match(token):
-        header = include_re.match(token).group(0)
+    elif c.include(token):
+        header = c.include(token)
         if header in include and header not in included_headers:
             print("found new header {}, with names:".format(header))
             for name in header_names(os.path.join("/usr/include", header)):
@@ -124,9 +121,7 @@ def replace_any(token):
                 no_mangle.append(name)
             included_headers.append(header)
         return token
-    elif token.strip() in keywords:
-        return token
-    elif ident_re.match(token):
+    elif c.ident(token):
         return token if token in no_mangle else replace_ident(token)
     else:
         return token
@@ -134,8 +129,7 @@ def replace_any(token):
 
 def replace_all(string):
     result = ""
-    split = filter(lambda n: n is not None, split_re.split(string))
-    for s in map(lambda s: replace_any(s), split):
+    for s in map(lambda s: replace_any(s), c.tokens(string)):
         # print("\"" + s + "\"")
         result = result + s
     # print(split)
