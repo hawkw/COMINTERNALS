@@ -1,6 +1,4 @@
 import markovify
-import os
-import re
 import textwrap
 
 def make_karl():

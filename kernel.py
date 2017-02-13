@@ -1,12 +1,12 @@
 import markovify, re, os, textwrap
-import karl_markov, c
+import karl_markov, c, asm
 from functools import reduce
 
 def header_names(path):
     """Generates a list of names defined in the header file at `path`."""
     with open(path) as f:
         for line in f:
-            match = header_name.match(line)
+            match = c.header_name.match(line)
             if match:
                 name = match.group(2) if match.group(2) else match.group(1)
                 print("found name {} in header {}".format(name, path))
@@ -17,6 +17,23 @@ def headers_in(dir_path):
     for root, _, filenames in os.walk(dir_path):
             for f in filenames:
                 if f.endswith(".h"): yield os.path.join(root, f)
+
+def asm_names(path):
+    """Generates a list of names defined in the header file at `path`."""
+    with open(path) as f:
+        for line in f:
+            match = asm.name.match(line)
+            if match:
+                name = match.group(3) if match.group(3) else match.group(2) if match.group(2) else match.group(1)
+                print("found name {} in asm {}".format(name, path))
+                yield name
+
+def asm_in(dir_path):
+    """Generates a list of header files in directory `dir`."""
+    for root, _, filenames in os.walk(dir_path):
+            for f in filenames:
+                if f.endswith(".S") or f.endswith(".asm"):
+                    yield os.path.join(root, f)
 
 
 include = [h for h in headers_in("/usr/include")]
@@ -138,6 +155,11 @@ def replace_all(string):
 in_dir = "linux"
 out_dir = "out"
 
+for asm in asm_in(in_dir):
+    for name in asm_names(asm):
+        print("found name \"{}\" in {}".format(name, asm))
+        no_mangle.append(name)
+
 for root, dirs, filenames in os.walk(in_dir):
     for f in filenames:
         if f.endswith(".c") or f.endswith(".h"):
@@ -149,3 +171,12 @@ for root, dirs, filenames in os.walk(in_dir):
                 with open(os.path.join(out_path, f), "w") as out:
                     print("making: " + os.path.join(out_path, f))
                     out.write(replace_all(code.read()))
+        else:
+            path = os.path.join(root, f)
+            with open(path) as code:
+                out_path = os.path.join(out_dir, root)
+                if not os.path.exists(out_path):
+                    os.makedirs(out_path)
+                with open(os.path.join(out_path, f), "w") as out:
+                    print("copying: " + os.path.join(out_path, f))
+                    out.write(code.read())
