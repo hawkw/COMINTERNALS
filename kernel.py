@@ -1,5 +1,6 @@
 import markovify, re, os, textwrap
-import karl_markov, c, asm
+import karl_markov, c
+from asm import asm_name
 from functools import reduce
 
 def header_names(path):
@@ -22,7 +23,7 @@ def asm_names(path):
     """Generates a list of names defined in the header file at `path`."""
     with open(path) as f:
         for line in f:
-            match = asm.name.match(line)
+            match = asm_name.match(line)
             if match:
                 name = match.group(3) if match.group(3) else match.group(2) if match.group(2) else match.group(1)
                 print("found name {} in asm {}".format(name, path))
