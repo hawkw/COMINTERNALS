@@ -29,8 +29,9 @@ def make_karl():
     return markovify.combine([manifesto, kapital],
                              [manifesto_weight, kapital_weight])
 
-com = make_karl()
-sentence = None
-while not sentence:
-    sentence = com.make_sentence()
-print("\n\"{}\" \n -- Karl Markov\n".format(textwrap.fill(sentence, 50)))
+if __name__ == "__main__":
+    com = make_karl()
+    sentence = None
+    while not sentence:
+        sentence = com.make_sentence()
+    print("\n\"{}\" \n -- Karl Markov\n".format(textwrap.fill(sentence, 50)))
