@@ -31,7 +31,6 @@ print("\"" + karl_markov.make_short_sentence(100, tries=100) + "\" -- Karl Marko
 
 the_peoples_idents = {}
 
-
 def make_ident(old_id):
     length = len(old_id)
     ident = None
@@ -132,7 +131,9 @@ def replace_any(token):
     # print("string is:" + string)
     if comment_re.match(token):
         return replace_comment(token)
-    elif ident_re.match(token) and not (token.strip() in keywords):
+    elif token.strip() in keywords:
+        return token
+    elif ident_re.match(token):
         return replace_ident(token)
     else:
         return token
