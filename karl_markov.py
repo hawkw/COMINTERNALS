@@ -2,7 +2,8 @@ import markovify
 import textwrap
 import re
 
-cite_re = re.compile(r"""((?:[0-9]+\. c,)?\s*(?:pp?\. [0-9]+\.?))""")
+cite_re = re.compile(r"""([0-9IVXMivx]*[\.\s,;]*(?:[0-9IVXMivx]+[\.\s;,]*c[\.\s;,]*)?[\.\s;,]*(?:(?:(?:t)|(?:Vol)|(?:Book)|(?:Ch))[\.\s,;]+[0-9IVXMivx]+[\.\s;,]*)*[\.\s,]*[p]+(?:[\.\s;,]+[0-9IVXMivx]+[\.\s,;]*)+)""",
+ re.MULTILINE)
 hyphen_newline_re = re.compile(r"""(-$)""", re.MULTILINE)
 
 def dehyphenate(string):
