@@ -161,7 +161,9 @@ for asm in asm_in(in_dir):
         print("found name \"{}\" in {}".format(name, asm))
         no_mangle.append(name)
 
-for root, dirs, filenames in os.walk(in_dir):
+for root, dirs, filenames in os.walk(in_dir, topdown=True):
+    filenames = [f for f in filenames if not f[0] == '.']
+    dirs[:] = [d for d in dirs if not d[0] == '.']
     for f in filenames:
         if f.endswith(".c") or f.endswith(".h"):
             path = os.path.join(root, f)
