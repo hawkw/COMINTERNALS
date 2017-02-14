@@ -1,5 +1,8 @@
 import markovify
 import textwrap
+import re
+
+cite_re = re.compile(r"""((?:[0-9]+\. c,)?\s*(?:pp?\. [0-9]+\.?))""")
 
 def make_karl():
     """Makes the Karl Markov model"""
@@ -11,7 +14,7 @@ def make_karl():
     # make the model
     manifesto = markovify.Text(manifesto_text[:gutenberg_footer])
     with open("kapital_vol_1.txt") as f:
-        kapital_text = f.read()
+        kapital_text = cite_re.sub("", f.read())
     kapital = markovify.Text(kapital_text)
     return markovify.combine([manifesto, kapital])
 
