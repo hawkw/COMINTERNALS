@@ -88,6 +88,8 @@ def make_ident(old_id):
         if id_try:
             id_try = c.invalid_id_re.sub("", id_try.replace(' ', '_'))
             id_try = id_try.upper() if old_id.isupper() else id_try.lower()
+            while not id_try[0].isalpha():
+                id_try = id_try[1:]
             if id_try not in the_peoples_idents.values():
                 ident = id_try
     return ident
