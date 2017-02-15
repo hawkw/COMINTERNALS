@@ -18,7 +18,7 @@ invalid_id_re = re.compile(r"[^_a-zA-Z]")
 string_lit = "\"[^\"]*\""
 hex_lit = r"0x[a-fA-F0-9]+"
 include = r"#include\s*<[a-zA-Z0-9\/\.]+>"
-include_re = re.compile( r"#include\s*<([a-zA-Z0-9\/\.]+\)>")
+include_re = re.compile( r"#include\s*<([a-zA-Z0-9\/\.]+)>")
 
 split_re = re.compile("({}|{}|{}|{}|{})"
                       .format(comm, include, hex_lit, ident, string_lit),
