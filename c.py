@@ -6,10 +6,10 @@ containers = ["enum", "struct", "union", "typedef"]
 preprocessor = ["define", "ifdef", "ifndef", "include", "endif", "defined"]
 # libs = ["_WIN32", "NULL", "fprintf", "stderr", "memset", "size_t", "fflush", "abort", "u_char", "u_long", "caddr_t"]
 modifiers = ["const", "volatile", "extern", "static", "register", "signed",
-             "unsigned"]
+             "unsigned", "inline", "__inline__", "__asm__", "__volatile__"]
 flow = ["if", "else", "goto",  "case", "default", "continue", "break"]
 loops = ["for", "do", "while" "switch"]
-keywords = types + containers + modifiers + flow + loops + ["return", "sizeof", "sbrk", "__asm__", "__volatile__"] + preprocessor #+ libs
+keywords = types + containers + modifiers + flow + loops + ["return", "sizeof", "sbrk"] + preprocessor #+ libs
 comm = r"\s*\/\*(\*(?!\/)|[^*]|\n)*\*\/"
 comment_re = re.compile(comm, re.DOTALL)
 ident = r"[_a-zA-Z][_a-zA-Z0-9]{0,30}"
