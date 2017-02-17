@@ -52,6 +52,26 @@ def replace_ident(old_ident):
         print("ident \"{}\" already mapped to \"{}\"".format(old_ident, new))
         return new
     else:
+        # new_ident = None
+        # for pat, rep in the_peoples_idents.items():
+        #     # EXPERIMENTAL:
+        #     #   attempt to repace parts of idents with parts of new idents
+        #     #   this should make Karl's coding style more coherent?
+        #     new, n = re.subn(pat, rep, old_ident)
+        #     if n > 0:
+        #         new = new[:30]
+        #         if new not in the_peoples_idents.values():
+        #             new_ident = new
+        # while not new_ident:
+        #     old_chunks = old_ident.split("_")
+        #     new_chunks = { }
+        #     for chunk in old_chunks:
+        #         new_chunks[chunk] = make_ident(chunk)
+        #     new = "_".join(new_chunks.values())[:30]
+        #     if new not in the_peoples_idents.values():
+        #         for old_ch, new_ch in new_chunks.items():
+        #             the_peoples_idents[old_ch] = new_ch
+        #         new_ident = new
         new_ident = make_ident(old_ident)
         the_peoples_idents[old_ident] = new_ident
         print("new ident \"{}\" mapped to \"{}\"".format(old_ident, new_ident))
@@ -79,7 +99,7 @@ def make_ident(old_id):
     length = len(old_id)
     ident = None
     while not ident:
-        length = length + 1 if length <= 30 else length
+        length = length + 1 if length < 30 else length
         id_try = karl_markov.make_short_sentence(length,
                                                  tries=100,
                                                  max_overlap_ratio=100,
@@ -88,9 +108,7 @@ def make_ident(old_id):
         if id_try:
             id_try = c.invalid_id_re.sub("", id_try.replace(' ', '_'))
             id_try = id_try.upper() if old_id.isupper() else id_try.lower()
-            while not id_try[0].isalpha():
-                id_try = id_try[1:]
-            if id_try not in the_peoples_idents.values():
+            if id_try not in the_peoples_idents.values() and not id_try[0].isdigit():
                 ident = id_try
     return ident
 

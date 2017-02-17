@@ -16,12 +16,15 @@ ident = r"[_a-zA-Z][_a-zA-Z0-9]{0,30}"
 ident_re = re.compile(ident)
 invalid_id_re = re.compile(r"[^_a-zA-Z]")
 string_lit = "\"[^\"]*\""
+attribute = r"__attribute__\s*\(.+?\)[\w;]"
 hex_lit = r"0x[a-fA-F0-9]+"
 include = r"#include\s*<[a-zA-Z0-9\/\.]+>"
-include_re = re.compile( r"#include\s*<([a-zA-Z0-9\/\.]+)>")
+include_re = re.compile(r"#include\s*<([a-zA-Z0-9\/\.]+)>")
 
-split_re = re.compile("({}|{}|{}|{}|{})"
-                      .format(comm, include, hex_lit, ident, string_lit),
+split_re = re.compile("({}|{}|{}|{}|{}|{})"
+                      .format(comm, include, hex_lit, ident,
+                              string_lit,
+                              attribute),
                       re.DOTALL)
 
 modifier = r"""const|volatile|extern|static|register|signed|unsigned|__inline__|__asm__|__volatile__|inline"""
