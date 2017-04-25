@@ -3,13 +3,13 @@ import re
 types = ["short", "int", "long", "float", "double", "char", "void", "bool",
          "FILE"]
 containers = ["enum", "struct", "union", "typedef"]
-preprocessor = ["define", "ifdef", "ifndef", "include", "endif", "defined"]
-# libs = ["_WIN32", "NULL", "fprintf", "stderr", "memset", "size_t", "fflush", "abort", "u_char", "u_long", "caddr_t"]
+# preprocessor = ["define", "ifdef", "ifndef", "include", "endif", "defined"]
+# # libs = ["_WIN32", "NULL", "fprintf", "stderr", "memset", "size_t", "fflush", "abort", "u_char", "u_long", "caddr_t"]
 modifiers = ["const", "volatile", "extern", "static", "register", "signed",
              "unsigned", "inline", "__inline__", "__asm__", "__volatile__"]
 flow = ["if", "else", "goto",  "case", "default", "continue", "break"]
 loops = ["for", "do", "while" "switch"]
-keywords = types + containers + modifiers + flow + loops + ["return", "sizeof", "sbrk"] + preprocessor #+ libs
+keywords = types + containers + modifiers + flow + loops + ["return", "sizeof", "sbrk"] #+ preprocessor #+ libs
 comm = r"\s*\/\*(\*(?!\/)|[^*]|\n)*\*\/"
 comment_re = re.compile(comm, re.DOTALL)
 ident = r"[_a-zA-Z][_a-zA-Z0-9]{0,30}"
@@ -18,11 +18,12 @@ invalid_id_re = re.compile(r"[^_a-zA-Z]")
 string_lit = "\"[^\"]*\""
 attribute = r"__attribute__\s*\(.+?\)[\w;]"
 hex_lit = r"0x[a-fA-F0-9]+"
-include = r"#include\s*<[a-zA-Z0-9\/\.]+>"
+include = r"""#include\s*[<"][a-zA-Z0-9\/\.]+[>"]"""
 include_re = re.compile(r"#include\s*<([a-zA-Z0-9\/\.]+)>")
-
-split_re = re.compile("({}|{}|{}|{}|{}|{})"
-                      .format(comm, include, hex_lit, ident,
+preprocessor = "r#\w+"
+preprocessor_re = re.compile(preprocessor)
+split_re = re.compile("({}|{}|{}|{}|{}|{}|{})"
+                      .format(comm, include, preprocessor, hex_lit, ident,
                               string_lit,
                               attribute),
                       re.DOTALL)
@@ -47,4 +48,7 @@ def is_keyword(string):
     return True if string.strip() in keywords else False
 
 def include(string):
-    return include_re.match(string)
+    return True if include_re.match(string) is not None else False
+
+def is_preprocessor(string):
+    return True if preprocessor_re.match(string) is not None else False

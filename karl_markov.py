@@ -2,6 +2,8 @@ import markovify
 import textwrap
 import re
 
+model_json_path = "karl.json"
+
 cite_re = re.compile(
 r"""([0-9IVXMivx]*[\.\s,;]*(?:[0-9IVXMivx]+[\.\s;,]*c[\.\s;,]*)?[\.\s;,]*(?:(?:(?:t)|(?:Vol)|(?:Book)|(?:Ch))[\.\s,;]+[0-9IVXMivx]+[\.\s;,]*)*[\.\s,]*[p]+(?:[\.\s;,]+[0-9IVXMivx]+[\.\s,;]*)+)""",
  re.MULTILINE)
@@ -39,10 +41,22 @@ def make_karl():
     # combine the models
     manifesto_weight = 1
     kapital_weight = len(manifesto_text) / len(kapital_text)
-    print("Das Kapital weight: {}".format(kapital_weight))
+    # print("Das Kapital weight: {}".format(kapital_weight))
 
     return markovify.combine([manifesto, kapital],
                              [manifesto_weight, kapital_weight])
+
+def get_karl():
+    """Loads the Karl Markov model from JSON or else creates it"""
+    try:
+        with open(model_json_path) as f:
+            json = f.read()
+            return markovify.Text.from_json(json)
+    except FileNotFoundError:
+        model = make_karl()
+        with open(model_json_path, "r") as f:
+            f.write(model.to_json())
+        return model
 
 class KarlMarkov(object):
 
