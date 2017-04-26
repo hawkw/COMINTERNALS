@@ -20,7 +20,7 @@ attribute = r"__attribute__\s*\(.+?\)[\w;]"
 hex_lit = r"0x[a-fA-F0-9]+"
 include = r"""#include\s*[<"][a-zA-Z0-9\/\.]+[>"]"""
 include_re = re.compile(r"#include\s*<([a-zA-Z0-9\/\.]+)>")
-preprocessor = "r#\w+"
+preprocessor = r"#\w+"
 preprocessor_re = re.compile(preprocessor)
 split_re = re.compile("({}|{}|{}|{}|{}|{}|{})"
                       .format(comm, include, preprocessor, hex_lit, ident,
