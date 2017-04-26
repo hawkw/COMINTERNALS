@@ -2,7 +2,7 @@ import markovify, re, os, textwrap, time
 import karl_markov, c
 from pygments import highlight
 from pygments.lexers import CLexer
-from pygments.formatters import TerminalFormatter
+from pygments.formatters import Terminal256Formatter
 from asm import asm_name
 from functools import reduce
 
@@ -160,7 +160,7 @@ def replace_any(token):
     else:
         return token
 
-formatter = TerminalFormatter(bg="dark")
+formatter = Terminal256Formatter(style='native')
 lexer = CLexer(stripnl=False, ensurenl=False)
 
 def write_code(string):
